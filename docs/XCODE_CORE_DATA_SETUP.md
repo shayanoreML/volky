@@ -27,8 +27,8 @@ Click **Add Entity** button (+) at the bottom and create these 5 entities:
 **Relationships:**
 | Name | Destination | Inverse | Type | Delete Rule |
 |------|-------------|---------|------|-------------|
-| scans | Scan | user | To Many | Cascade |
-| regimenEvents | RegimenEvent | user | To Many | Cascade |
+| scans | Scan | userProfile | To Many | Cascade |
+| regimenEvents | RegimenEvent | userProfile | To Many | Cascade |
 
 ---
 
@@ -52,7 +52,7 @@ Click **Add Entity** button (+) at the bottom and create these 5 entities:
 **Relationships:**
 | Name | Destination | Inverse | Type | Delete Rule |
 |------|-------------|---------|------|-------------|
-| user | UserProfile | scans | To One | Nullify |
+| userProfile | UserProfile | scans | To One | Nullify |
 | lesions | Lesion | scan | To Many | Cascade |
 | regionSummaries | RegionSummary | scan | To Many | Cascade |
 
@@ -128,7 +128,7 @@ Click **Add Entity** button (+) at the bottom and create these 5 entities:
 **Relationships:**
 | Name | Destination | Inverse | Type | Delete Rule |
 |------|-------------|---------|------|-------------|
-| user | UserProfile | regimenEvents | To One | Nullify |
+| userProfile | UserProfile | regimenEvents | To One | Nullify |
 
 ---
 
@@ -202,7 +202,7 @@ UserProfile
   └── regimenEvents → [RegimenEvent]
 
 Scan
-  ├── user → UserProfile
+  ├── userProfile → UserProfile
   ├── lesions → [Lesion]
   └── regionSummaries → [RegionSummary]
 
@@ -213,7 +213,7 @@ RegionSummary
   └── scan → Scan
 
 RegimenEvent
-  └── user → UserProfile
+  └── userProfile → UserProfile
 ```
 
 ---
