@@ -1,0 +1,147 @@
+# Fastfile for Volcy
+# iOS automation: build, test, deploy
+
+default_platform(:ios)
+
+platform :ios do
+  desc "Run all unit and UI tests"
+  lane :test do
+    run_tests(
+      scheme: "Volcy",
+      devices: ["iPhone 15 Pro"],
+      clean: true
+    )
+  end
+
+  desc "Build the app for testing"
+  lane :build do
+    build_app(
+      scheme: "Volcy",
+      configuration: "Debug",
+      skip_archive: true,
+      skip_codesigning: true
+    )
+  end
+
+  desc "Submit a new Beta Build to TestFlight"
+  lane :beta do
+    # Increment build number
+    increment_build_number(xcodeproj: "Volcy.xcodeproj")
+
+    # Build app
+    build_app(
+      scheme: "Volcy",
+      configuration: "Release",
+      export_method: "app-store"
+    )
+
+    # Upload to TestFlight
+    upload_to_testflight(
+      skip_waiting_for_build_processing: true,
+      notify_external_testers: false
+    )
+
+    # Commit version bump
+    commit_version_bump(
+      message: "Version bump for TestFlight build",
+      xcodeproj: "Volcy.xcodeproj"
+    )
+  end
+
+  desc "Deploy a new version to the App Store"
+  lane :release do
+    # Ensure we're on main branch
+    ensure_git_branch(branch: "main")
+
+    # Ensure working directory is clean
+    ensure_git_status_clean
+
+    # Run tests
+    test
+
+    # Increment version
+    increment_version_number(
+      bump_type: "patch",
+      xcodeproj: "Volcy.xcodeproj"
+    )
+
+    increment_build_number(xcodeproj: "Volcy.xcodeproj")
+
+    # Build and upload
+    build_app(
+      scheme: "Volcy",
+      configuration: "Release",
+      export_method: "app-store"
+    )
+
+    upload_to_app_store(
+      submit_for_review: false,
+      automatic_release: false,
+      skip_metadata: false,
+      skip_screenshots: false
+    )
+
+    # Tag release
+    version = get_version_number(xcodeproj: "Volcy.xcodeproj")
+    build = get_build_number(xcodeproj: "Volcy.xcodeproj")
+
+    add_git_tag(
+      tag: "v#{version}-#{build}"
+    )
+
+    push_to_git_remote
+
+    # Post to Slack (optional)
+    # slack(
+    #   message: "New Volcy version #{version} (#{build}) submitted to App Store! 🎉"
+    # )
+  end
+
+  desc "Take screenshots for App Store"
+  lane :screenshots do
+    capture_screenshots(
+      scheme: "VolcyUITests",
+      devices: [
+        "iPhone 15 Pro Max",
+        "iPhone 15 Pro",
+        "iPhone 15",
+        "iPhone SE (3rd generation)",
+        "iPad Pro (12.9-inch) (6th generation)"
+      ],
+      languages: ["en-US"],
+      output_directory: "./fastlane/screenshots",
+      clear_previous_screenshots: true
+    )
+
+    frame_screenshots(
+      white: true,
+      path: "./fastlane/screenshots"
+    )
+  end
+
+  desc "Update metadata on App Store Connect"
+  lane :metadata do
+    deliver(
+      skip_binary_upload: true,
+      skip_screenshots: true,
+      force: true
+    )
+  end
+
+  desc "Sync code signing certificates"
+  lane :sync_signing do
+    match(
+      type: "appstore",
+      readonly: true
+    )
+  end
+
+  # Error handling
+  error do |lane, exception, options|
+    # Post to Slack on failure (optional)
+    # slack(
+    #   message: "Fastlane lane '#{lane}' failed: #{exception.message}",
+    #   success: false
+    # )
+  end
+end
